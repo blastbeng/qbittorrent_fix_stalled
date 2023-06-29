@@ -1,0 +1,43 @@
+---
+version: "2.1"
+services:
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Rome
+      - WEBUI_PORT=8080
+    volumes:
+      - ./config:/config
+      - /var/media:/var/media
+      - /mnt/tmpdisk:/mnt/tmpdisk
+    ports:
+      - 8080:8080
+      - 6881:6881
+      - 6881:6881/udp
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080"]
+      interval: 30s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+  qbittorrent-fix-stalled:
+     build:
+       context: ./qbittorrentFixStalled
+       dockerfile: Dockerfile
+     container_name: qbittorrent-fix-stalled
+     environment:
+       - PUID=1000
+       - PGID=1000
+       - TZ=Europe/Rome
+     depends_on:
+       qbittorrent:
+         condition: service_healthy
+     volumes:
+       - ".env:/app/.env"
+     image: "blastbeng/qbittorrent-fix-stalled:1.0.0"
+     restart: unless-stopped
